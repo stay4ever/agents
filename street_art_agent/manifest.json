@@ -1,0 +1,37 @@
+{
+  "name": "street-art-agent",
+  "version": "1.0.0",
+  "description": "Researches a city's street art scene via streetartcities.com, analyzes the visual DNA (colors, techniques, themes), and generates 3 advertising campaign concepts inspired by the local graffiti culture — complete with AI-generated abstract street art imagery.",
+  "capabilities": [
+    "web-search",
+    "street-art-analysis",
+    "campaign-generation",
+    "image-generation"
+  ],
+  "toolSurfaces": [
+    {
+      "name": "anthropic-api",
+      "type": "llm",
+      "description": "Claude Sonnet with web search for street art research and campaign ideation"
+    },
+    {
+      "name": "stable-horde",
+      "type": "image-generation",
+      "description": "Free decentralized AI image generation for abstract street art visuals"
+    },
+    {
+      "name": "streetartcities",
+      "type": "web-data-source",
+      "description": "Primary source for city-specific street art and graffiti references"
+    }
+  ],
+  "permissionScopes": [
+    "network:outbound",
+    "api:anthropic",
+    "api:stablehorde"
+  ],
+  "entrypoint": "src/StreetArtAgent.jsx",
+  "runtime": "node",
+  "timeout": 300000,
+  "maxCostPerRun": 0.15
+}
