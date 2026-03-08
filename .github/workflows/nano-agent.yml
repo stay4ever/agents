@@ -91,7 +91,7 @@ jobs:
           if [ "${{ steps.agent.outcome }}" != "success" ]; then
             STATUS="failed"
           fi
-          BODY=$(jq -n \
+          BODY=$(jq -cn \
             --arg run_id "$RUN_ID" \
             --arg status "$STATUS" \
             --arg output "$OUTPUT" \
