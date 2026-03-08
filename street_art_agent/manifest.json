@@ -8,6 +8,21 @@
     "campaign-generation",
     "image-generation"
   ],
+  "inputs": [
+    {
+      "name": "city",
+      "description": "Target city (e.g. Berlin, Tokyo, São Paulo)",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "brief",
+      "description": "Campaign brief (e.g. sustainable sneaker launch)",
+      "type": "string",
+      "required": false,
+      "default": ""
+    }
+  ],
   "toolSurfaces": [
     {
       "name": "anthropic-api",
