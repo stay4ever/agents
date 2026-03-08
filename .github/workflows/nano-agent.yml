@@ -1,24 +1,30 @@
-name: Street Art Agent
+name: nanoPlasticity Agent
 
 on:
   workflow_dispatch:
     inputs:
-      city:
-        description: "Target city (e.g. Berlin, Tokyo, São Paulo)"
+      task:
+        description: 'Task for the agent to execute'
         required: true
         type: string
-      brief:
-        description: "Campaign brief (e.g. sustainable sneaker launch)"
-        required: false
+      run_id:
+        description: 'nanoPlasticity run ID'
+        required: true
         type: string
-        default: ""
+      callback_url:
+        description: 'Webhook URL for results'
+        required: true
+        type: string
+      webhook_secret:
+        description: 'HMAC secret for signing results'
+        required: true
+        type: string
 
 jobs:
   run-agent:
-    name: Generate Street Art Campaigns
+    name: Run Street Art Agent
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,24 +32,44 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: '20'
 
-      - name: Run Street Art Agent
+      - name: Install dependencies
+        working-directory: street_art_agent
+        run: npm install --production
+
+      - name: Run agent
         id: agent
         working-directory: street_art_agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          INPUT_CITY: ${{ inputs.city }}
-          INPUT_BRIEF: ${{ inputs.brief }}
-        run: node agent.mjs
+          NANO_TASK: ${{ inputs.task }}
+          NANO_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          OUTPUT=$(echo '${{ inputs.task }}' | node agent.mjs 2>&1)
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$OUTPUT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Upload result
-        uses: actions/upload-artifact@v4
-        with:
-          name: street-art-campaigns-${{ inputs.city }}
-          path: street_art_agent/result.json
-          retention-days: 7
-
-      - name: Print result
-        working-directory: street_art_agent
-        run: cat result.json
+      - name: Send results to nanoPlasticity
+        if: always()
+        env:
+          CALLBACK_URL: ${{ inputs.callback_url }}
+          WEBHOOK_SECRET: ${{ inputs.webhook_secret }}
+          RUN_ID: ${{ inputs.run_id }}
+          OUTPUT: ${{ steps.agent.outputs.output }}
+        run: |
+          STATUS="completed"
+          if [ "${{ steps.agent.outcome }}" != "success" ]; then
+            STATUS="failed"
+          fi
+          BODY=$(jq -n \
+            --arg run_id "$RUN_ID" \
+            --arg status "$STATUS" \
+            --arg output "$OUTPUT" \
+            '{run_id: $run_id, status: $status, output: $output}')
+          SIGNATURE=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $2}')
+          curl -s -X POST "$CALLBACK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Nano-Signature: sha256=$SIGNATURE" \
+            -d "$BODY"
