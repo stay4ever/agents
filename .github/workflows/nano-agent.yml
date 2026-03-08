@@ -1,0 +1,49 @@
+name: Street Art Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      city:
+        description: "Target city (e.g. Berlin, Tokyo, São Paulo)"
+        required: true
+        type: string
+      brief:
+        description: "Campaign brief (e.g. sustainable sneaker launch)"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  run-agent:
+    name: Generate Street Art Campaigns
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Street Art Agent
+        id: agent
+        working-directory: street_art_agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INPUT_CITY: ${{ inputs.city }}
+          INPUT_BRIEF: ${{ inputs.brief }}
+        run: node agent.js
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: street-art-campaigns-${{ inputs.city }}
+          path: street_art_agent/result.json
+          retention-days: 7
+
+      - name: Print result
+        working-directory: street_art_agent
+        run: cat result.json
