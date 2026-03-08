@@ -42,7 +42,7 @@ jobs:
         id: agent
         working-directory: street_art_agent
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.NTHROPIC_API_KEY }}
           NANO_TASK: ${{ inputs.task }}
           NANO_RUN_ID: ${{ inputs.run_id }}
         run: |
