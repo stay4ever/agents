@@ -35,7 +35,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           INPUT_CITY: ${{ inputs.city }}
           INPUT_BRIEF: ${{ inputs.brief }}
-        run: node agent.js
+        run: node agent.mjs
 
       - name: Upload result
         uses: actions/upload-artifact@v4

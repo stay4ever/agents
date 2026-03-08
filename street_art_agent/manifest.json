@@ -30,7 +30,7 @@
     "api:anthropic",
     "api:stablehorde"
   ],
-  "entrypoint": "src/StreetArtAgent.jsx",
+  "entrypoint": "agent.mjs",
   "runtime": "node",
   "timeout": 300000,
   "maxCostPerRun": 0.15
