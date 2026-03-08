@@ -38,6 +38,32 @@ jobs:
         working-directory: street_art_agent
         run: npm install --production
 
+      - name: Parse task into city and brief
+        id: parse
+        env:
+          NANO_TASK: ${{ inputs.task }}
+        run: |
+          # Try to parse as JSON first (e.g. {"city":"Berlin","brief":"sneakers"})
+          CITY=$(echo "$NANO_TASK" | jq -r '.city // empty' 2>/dev/null || true)
+          BRIEF=$(echo "$NANO_TASK" | jq -r '.brief // empty' 2>/dev/null || true)
+
+          # If not JSON, treat as free-text: extract city (first word/phrase before comma) and brief (rest)
+          if [ -z "$CITY" ]; then
+            # Split on comma: "Berlin, sneaker campaign" → city=Berlin, brief=sneaker campaign
+            if echo "$NANO_TASK" | grep -q ','; then
+              CITY=$(echo "$NANO_TASK" | cut -d',' -f1 | xargs)
+              BRIEF=$(echo "$NANO_TASK" | cut -d',' -f2- | xargs)
+            else
+              # No comma — use entire task as city (agent will work without brief)
+              CITY=$(echo "$NANO_TASK" | xargs)
+              BRIEF=""
+            fi
+          fi
+
+          echo "city=$CITY" >> $GITHUB_OUTPUT
+          echo "brief=$BRIEF" >> $GITHUB_OUTPUT
+          echo "Parsed task → city='$CITY' brief='$BRIEF'"
+
       - name: Run agent
         id: agent
         working-directory: street_art_agent
@@ -45,8 +71,10 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.NTHROPIC_API_KEY }}
           NANO_TASK: ${{ inputs.task }}
           NANO_RUN_ID: ${{ inputs.run_id }}
+          NANO_CITY: ${{ steps.parse.outputs.city }}
+          NANO_BRIEF: ${{ steps.parse.outputs.brief }}
         run: |
-          OUTPUT=$(echo '${{ inputs.task }}' | node agent.mjs 2>&1)
+          OUTPUT=$(node agent.mjs "$NANO_CITY" "$NANO_BRIEF" 2>&1)
           echo "output<<EOF" >> $GITHUB_OUTPUT
           echo "$OUTPUT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
